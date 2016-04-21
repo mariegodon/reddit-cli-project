@@ -1,8 +1,7 @@
-//hi
-
 var inquirer = require('inquirer');
 var reddit = require('./library/reddit');
 var imageToAscii = require('image-to-ascii');
+var wordWrap = require('word-wrap');
 
 //take a post from Reddit API, return only certain information
 //this information will be used to populate a selection menu of posts
@@ -16,6 +15,7 @@ function redditTransform(array) {
         content.url = post.data['thumbnail'];
         content.votes = post.data['score'];
         content.username = post.data['author'];
+        content.permalink = post.data['permalink'];
         full.value = content;
         return full;
     });
@@ -26,7 +26,10 @@ function urlToImg(obj, callback) {
     if (obj.url) {
         imageToAscii(obj.url, {
             bg: true,
-            size: {height: "50%", width: "50%"}
+            size: {
+                height: "50%",
+                width: "50%"
+            }
         }, function(err, converted) {
             obj.conv = converted;
             //console.log(obj.url);
@@ -194,11 +197,14 @@ function app() {
                                     message: 'Which post do you want to look at?',
                                     choices: postChoices,
                                 }).then(function(postChoice) {
-                                    console.log(postChoice.postMenu);
-                                    urlToImg(postChoice.postMenu, function(result) {
-                                        console.log(result.conv);
-                                        app();
-                                    })
+                                    var copyPostChoice = Object.assign({}, postChoice.postMenu);
+                                    console.log(copyPostChoice);
+                                    // urlToImg(postChoice.postMenu, function(result) {
+                                    //     console.log(result.conv);
+                                //});
+                                    reddit.getComments(copyPostChoice['permalink'], function(comments) {
+                                        console.log(comments)
+                                    });
                                 });
                             }
                         });

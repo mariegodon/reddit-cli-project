@@ -1,5 +1,6 @@
 var request = require("request");
 var util = require("util");
+var wordWrap = require("word-wrap");
 
 var redditURL = "https://www.reddit.com/";
 
@@ -35,21 +36,46 @@ function getSubreddit(subreddit, callback) {
     });
 }
 
-function getSortedSubreddits(subreddit, sortingMethod, callback){
-    request(redditURL + "/r/" + subreddit + "/" + sortingMethod + ".json", function (err, subSortJSON){
-        if (!JSON.parse(subSortJSON.body).data.children[0]){
+function getSortedSubreddits(subreddit, sortingMethod, callback) {
+    request(redditURL + "/r/" + subreddit + "/" + sortingMethod + ".json", function(err, subSortJSON) {
+        if (!JSON.parse(subSortJSON.body).data.children[0]) {
             callback("Hmm.. try some different search parameters!");
-        } else {
+        }
+        else {
             var subSort = JSON.parse(subSortJSON.body).data.children;
             callback(subSort);
         }
     });
 }
 
-function getSubreddits(callback){
-    request(redditURL + "/subreddits.json", function (err, subJSON){
+function getSubreddits(callback) {
+    request(redditURL + "/subreddits.json", function(err, subJSON) {
         var sub = JSON.parse(subJSON.body).data.children;
         callback(sub);
+    });
+}
+
+function getComments(permaLink, callback) {
+    var comments = [];
+    request(redditURL + permaLink + ".json", function(err, postCommentsJSON) {
+        var postCommentsArr = (JSON.parse(postCommentsJSON.body))[1].data.children;
+        var i = 0;
+        while (i < postCommentsArr.length) {
+            var j = 0;
+            if (postCommentsArr[i].data.body){
+            comments.push(postCommentsArr[i].data.body);
+            }
+            if (postCommentsArr[i].data.replies){
+                while (j < postCommentsArr[i].data.replies.data.children.length){
+                    if (postCommentsArr[i].data.replies.data.children[j].data.body){
+                    comments.push(wordWrap(postCommentsArr[i].data.replies.data.children[j].data.body, {indent: '   '}));
+                    }
+                    j++
+                }
+            }
+            i++
+        }
+        callback(comments);
     });
 }
 
@@ -58,6 +84,6 @@ module.exports = {
     getSortedHomepage: getSortedHomepage,
     getSubreddit: getSubreddit,
     getSortedSubreddits: getSortedSubreddits,
-    getSubreddits: getSubreddits
+    getSubreddits: getSubreddits,
+    getComments: getComments
 }
-

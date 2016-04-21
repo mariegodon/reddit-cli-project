@@ -1,3 +1,5 @@
+//hi
+
 var inquirer = require('inquirer');
 var reddit = require('./library/reddit');
 var imageToAscii = require('image-to-ascii');

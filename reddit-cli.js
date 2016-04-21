@@ -2,6 +2,10 @@ var inquirer = require('inquirer');
 var reddit = require('./library/reddit');
 var imageToAscii = require('image-to-ascii');
 
+//take a post from Reddit API, return only certain information
+//this information will be used to populate a selection menu of posts
+//shown will be full.name
+//when selected, shown will be full.value
 function redditTransform(array) {
     return array.map(function(post) {
         var full = {};
@@ -15,18 +19,25 @@ function redditTransform(array) {
     });
 }
 
-function urlToImg(url) {
-    var orig = url;
-    imageToAscii(url, function(err, converted) {
-        if (err) {
-            return orig;
-        }
-        else {
-            return converted;
-        }
-    });
+//take a thumbnail url. if it exists, convert it to ASCII image
+function urlToImg(obj, callback) {
+    if (obj.url) {
+        imageToAscii(obj.url, {
+            bg: true,
+            size: {height: "50%", width: "50%"}
+        }, function(err, converted) {
+            obj.conv = converted;
+            //console.log(obj.url);
+            callback(obj);
+        });
+    }
+    else {
+        obj.conv = [];
+        callback(obj);
+    }
 }
 
+//transform list of all subreddits into an array of titles and parameters
 function allSubredditsTransform(array) {
     return array.map(function(post) {
         var select = {};
@@ -83,11 +94,15 @@ function app() {
                     }).then(function(userSort) {
                         //display sorted subreddit
                         reddit.getSortedSubreddits(subRed, userSort, function(page) {
+                            //if the function returns a string not an array, ERROR
                             if (typeof page === 'string') {
+                                //display the error, restart app
                                 console.log(page);
                                 app();
                             }
                             else {
+                                //transform array to array of useful info
+                                //display them in a menu with titles and selectable choices
                                 var postChoices = redditTransform(page);
                                 inquirer.prompt({
                                     type: 'list',
@@ -95,13 +110,14 @@ function app() {
                                     message: 'Which post do you want to look at?',
                                     choices: postChoices,
                                 }).then(function(postChoice) {
-                                    //NOT WORKING
-                                    //NEED TO CONSOLE LOG INSIDE CALLBACK
-                                    // console.log(postChoice);
-                                    // postChoice.postMenu.url = urlToImg(postChoice.postMenu['url']) ;
-                                    // console.log(postChoice.postMenu);
-                                    // app();
-                                });
+                                    //display information related to selected post
+                                    console.log(postChoice.postMenu);
+                                    //convert thumbnail url to img, display and restart app
+                                    urlToImg(postChoice.postMenu, function(result) {
+                                        console.log(result.conv);
+                                        app();
+                                    })
+                                })
                             }
                         });
 
@@ -124,15 +140,16 @@ function app() {
                                 choices: postChoices,
                             }).then(function(postChoice) {
                                 console.log(postChoice.postMenu);
-                                app();
+                                urlToImg(postChoice.postMenu, function(result) {
+                                    console.log(result.conv);
+                                    app();
+                                })
                             });
-
                         }
                     });
                 }
             });
         });
-
     }
 
     //original prompt: display homepage, specific subreddit, or subreddits
@@ -176,7 +193,10 @@ function app() {
                                     choices: postChoices,
                                 }).then(function(postChoice) {
                                     console.log(postChoice.postMenu);
-                                    app();
+                                    urlToImg(postChoice.postMenu, function(result) {
+                                        console.log(result.conv);
+                                        app();
+                                    })
                                 });
                             }
                         });
@@ -198,9 +218,11 @@ function app() {
                                 choices: postChoices,
                             }).then(function(postChoice) {
                                 console.log(postChoice.postMenu);
-                                app();
+                                urlToImg(postChoice.postMenu, function(result) {
+                                    console.log(result.conv);
+                                    app();
+                                })
                             });
-
                         }
                     });
                 }
